@@ -16,7 +16,7 @@ const clientEndPoints = {
   ////////////////Authentication Routes////////////////
 
   signup: `${authBasePath}/signup`,
-  login: `${authBasePath}/login`,
+  signin: `${authBasePath}/signin`,
   logout: `${authBasePath}/logout`,
   sendVerificationOTP: `${authBasePath}/send-verify-otp`,
   verifyAccount: `${authBasePath}/verify-account`,

@@ -144,7 +144,7 @@ const SignUp = () => {
                 text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 
                 dark:focus:ring-blue-800"
             >
-              {loading ? "Loading..." : "Create an account"}
+              {loading ? "Loading..." : "Sign Up"}
             </button>
 
             {/* Login link */}
@@ -154,7 +154,7 @@ const SignUp = () => {
                 to="/sign-in"
                 className="font-medium text-blue-600 hover:underline dark:text-blue-500"
               >
-                Login here
+                Sign In
               </Link>
             </p>
 
