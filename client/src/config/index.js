@@ -1,9 +1,9 @@
 import axios from "axios";
 //  Local
-// const websiteBaseURL = "http://localhost:3000";
+const websiteBaseURL = "http://localhost:3000";
 
 // Production
-const websiteBaseURL = "https://mern-auth-5aqq.vercel.app";
+// const websiteBaseURL = "https://mern-auth-5aqq.vercel.app";
 
 const clientBaseURL = axios.create({
   baseURL: websiteBaseURL,
@@ -15,7 +15,7 @@ const userBasePath = "/api/user";
 const clientEndPoints = {
   ////////////////Authentication Routes////////////////
 
-  register: `${authBasePath}/register`,
+  signup: `${authBasePath}/signup`,
   login: `${authBasePath}/login`,
   logout: `${authBasePath}/logout`,
   sendVerificationOTP: `${authBasePath}/send-verify-otp`,
