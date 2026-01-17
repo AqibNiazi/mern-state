@@ -3,15 +3,22 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👁️ eye icons
+import { useDispatch, useSelector } from "react-redux";
+import {
+  signInStart,
+  signInSuccess,
+  signInFailure,
+} from "@/store/user/userSlice";
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.user);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false); // 👁️ toggle state
 
   // ✅ Handle input changes
@@ -27,9 +34,7 @@ const SignIn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
-      setError(null);
-
+      dispatch(signInStart());
       const response = await clientBaseURL.post(
         clientEndPoints.signin,
         formData
@@ -37,16 +42,18 @@ const SignIn = () => {
 
       if (response.data.success) {
         toast.success(response.data.message);
+        dispatch(signInSuccess(response?.data?.data));
         setFormData({ email: "", password: "" }); // reset form
         navigate("/");
       } else {
         toast.error(response.data.message || "Signin failed");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong");
+      dispatch(signInFailure(err.response?.data?.message));
+
       toast.error(err.response?.data?.message || "Signin failed");
     } finally {
-      setLoading(false);
+      dispatch(signInStart());
     }
   };
 
