@@ -122,7 +122,7 @@ const signin = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     // ✅ Store token in secure cookie
@@ -156,7 +156,113 @@ const signin = async (req, res) => {
   }
 };
 
+const google = async (req, res) => {
+  try {
+    const { email, name, photo } = req.body;
+
+    // ✅ Validate required fields
+    if (!email || !name) {
+      return res.status(400).json({
+        success: false,
+        error: "VALIDATION_ERROR",
+        message: "Email and name are required for Google Signin.",
+      });
+    }
+
+    // ✅ Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "INVALID_EMAIL",
+        message: "Please provide a valid email address.",
+      });
+    }
+
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // ✅ Existing user → generate token
+      const token = jwt.sign(
+        { id: user._id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" },
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 3600000, // 1 hour
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Signin successful!",
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+        },
+      });
+    } else {
+      // ✅ New user → create account
+      const generatedPassword =
+        Math.random().toString(36).slice(-8) +
+        Math.random().toString(36).slice(-8);
+      const hashedPassword = bcrypt.hashSync(generatedPassword, 10);
+
+      const newUser = new User({
+        username:
+          name.split(" ").join("").toLowerCase() +
+          Math.random().toString(36).slice(-4),
+        email,
+        password: hashedPassword,
+        avatar: photo,
+      });
+
+      await newUser.save();
+
+      const token = jwt.sign(
+        { id: newUser._id, email: newUser.email },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" },
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 3600000,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Account created and signed in successfully!",
+        data: {
+          id: newUser._id,
+          username: newUser.username,
+          email: newUser.email,
+          avatar: newUser.avatar,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Google Signin Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error: "SERVER_ERROR",
+      message: "Something went wrong during Google Signin.",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
 module.exports = {
   signup,
   signin,
+  google,
 };
