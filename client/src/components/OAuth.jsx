@@ -21,12 +21,13 @@ const OAuth = () => {
         email: result.user.email,
         photo: result.user.photoURL,
       });
+      console.log("response of Google Signin", response);
 
-      toast.success(response.data.message);
+      toast.success(response?.data?.message);
       dispatch(signInSuccess(response?.data?.data));
       navigate("/");
     } catch (error) {
-      toast.error(error.response.data.message);
+      console.log(error);
     }
   };
 

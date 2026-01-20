@@ -49,10 +49,8 @@ const SignIn = () => {
       } else {
         toast.error(response.data.message || "Signin failed");
       }
-    } catch (err) {
-      dispatch(signInFailure(err.response?.data?.message));
-
-      toast.error(err.response?.data?.message || "Signin failed");
+    } catch (error) {
+      dispatch(signInFailure(error.message));
     }
   };
 
