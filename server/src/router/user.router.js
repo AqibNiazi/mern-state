@@ -2,7 +2,10 @@ const express = require("express");
 
 
 const userRouter = express.Router();
-const { uploadProfileImage } = require("../controller/user.controller");
+const {
+  uploadProfileImage,
+  updateUserInfo,
+} = require("../controller/user.controller");
 const upload = require("../middleware/upload");
 const { verifyToken } = require("../middleware/auth"); // your JWT middleware
 
@@ -13,5 +16,6 @@ userRouter.post(
   uploadProfileImage,
 );
 
+userRouter.post("/update-user/:id", verifyToken, updateUserInfo);
 
 module.exports = userRouter;

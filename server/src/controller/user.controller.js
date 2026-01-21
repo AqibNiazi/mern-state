@@ -1,5 +1,6 @@
 const cloudinary = require("../config/cloudinary");
 const User = require("../model/user.model");
+const bcrypt = require("bcryptjs");
 
 const uploadProfileImage = async (req, res) => {
   try {
@@ -50,4 +51,105 @@ const uploadProfileImage = async (req, res) => {
   }
 };
 
-module.exports = { uploadProfileImage };
+const updateUserInfo = async (req, res) => {
+  try {
+    // ✅ Ensure user can only update their own account
+    if (req.user.id !== req.params.id) {
+      return res.status(401).json({
+        success: false,
+        message: "You can only update your own account",
+      });
+    }
+
+    const { username, email, password, avatar } = req.body;
+
+    // ✅ Build update object dynamically
+    const updateData = {};
+
+    if (username) {
+      updateData.username = username;
+    }
+
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          error: "INVALID_EMAIL",
+          message: "Please provide a valid email address.",
+        });
+      }
+
+      const existingUser = await User.findOne({ email });
+      if (existingUser && existingUser._id.toString() !== req.user.id) {
+        return res.status(400).json({
+          success: false,
+          error: "EMAIL_IN_USE",
+          message: "This email is already in use by another account.",
+        });
+      }
+
+      updateData.email = email;
+    }
+
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          error: "WEAK_PASSWORD",
+          message: "Password must be at least 6 characters long.",
+        });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    if (avatar) {
+      updateData.avatar = avatar;
+    }
+
+    // ✅ If no fields provided, just return current user
+    if (Object.keys(updateData).length === 0) {
+      const user = await User.findById(req.params.id);
+      return res.status(200).json({
+        success: true,
+        message: "No changes made",
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+        },
+      });
+    }
+
+    // ✅ Update user in MongoDB
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      data: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        avatar: updatedUser.avatar,
+      },
+    });
+  } catch (error) {
+    console.error("Update User Error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "SERVER_ERROR",
+      message: "Something went wrong while updating the user.",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+module.exports = { uploadProfileImage, updateUserInfo };
