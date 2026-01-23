@@ -5,6 +5,9 @@ import {
   deleteUserStart,
   deleteUserSuccess,
   signInSuccess,
+  signoutUserFailure,
+  signoutUserStart,
+  signoutUserSuccess,
 } from "@/store/user/userSlice";
 import Button from "@/components/Button";
 import InputField from "@/components/InputField";
@@ -16,16 +19,18 @@ import {
 } from "@/store/user/userSlice";
 import { clientBaseURL, clientEndPoints } from "@/config";
 import { notify } from "@/util/notify";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const { currentUser, loading } = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [file, setFile] = useState(undefined);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0); // ✅ track percentage
   const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({});
-  console.log(currentUser?.avatar);
+  console.log("current user Id", currentUser.id);
 
   const handleUploadFile = async (file) => {
     if (!file) return;
@@ -124,6 +129,7 @@ const Profile = () => {
       if (response.data.success) {
         dispatch(deleteUserSuccess());
         notify.success(response.data.message);
+        navigate("/sign-in");
       } else {
         dispatch(deleteUserFailure(response.data.message));
         notify.error(response.data.message);
@@ -131,6 +137,27 @@ const Profile = () => {
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
       notify.error(error.response?.data?.message || "Delete failed");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      dispatch(signoutUserStart());
+
+      const response = await clientBaseURL.get(clientEndPoints.signout);
+      console.log("signout response", response);
+
+      if (response.data.success) {
+        dispatch(signoutUserSuccess());
+        notify.success(response.data.message);
+        navigate("/sign-in");
+      } else {
+        dispatch(signoutUserFailure(response.data.message));
+        notify.error(response.data.message);
+      }
+    } catch (error) {
+      dispatch(signoutUserFailure(error.message));
+      notify.error(error.response?.data?.message || "Signout failed");
     }
   };
 
@@ -193,7 +220,9 @@ const Profile = () => {
           >
             Delete Account
           </span>
-          <span className="text-red-700 cursor-pointer">Sign Out</span>
+          <span className="text-red-700 cursor-pointer" onClick={handleSignOut}>
+            Sign Out
+          </span>
         </div>
       </form>
     </div>

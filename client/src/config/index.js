@@ -15,16 +15,10 @@ const authBasePath = "/api/auth";
 const userBasePath = "/api/user";
 const clientEndPoints = {
   ////////////////Authentication Routes////////////////
-
   signup: `${authBasePath}/signup`,
   signin: `${authBasePath}/signin`,
   google: `${authBasePath}/google`,
-  // logout: `${authBasePath}/logout`,
-  // sendVerificationOTP: `${authBasePath}/send-verify-otp`,
-  // verifyAccount: `${authBasePath}/verify-account`,
-  // isAuthenticated: `${authBasePath}/is-auth`,
-  // sendResetOTP: `${authBasePath}/send-reset-otp`,
-  // resetPassword: `${authBasePath}/reset-password`,
+  signout: `${authBasePath}/signout`,
 
   ////////////////User Routes////////////
   uploadAvatar: `${userBasePath}/upload-avatar`,
