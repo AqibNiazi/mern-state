@@ -10,9 +10,10 @@ const InputField = ({
   defaultValue,
   onChange,
   placeholder,
+  className,
 }) => {
   return (
-    <div className="mb-4">
+    <div className={className}>
       <label
         htmlFor={labelfor}
         className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
