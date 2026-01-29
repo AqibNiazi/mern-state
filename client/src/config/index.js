@@ -13,6 +13,7 @@ const clientBaseURL = axios.create({
 
 const authBasePath = "/api/auth";
 const userBasePath = "/api/user";
+const listingBasePath = "/api/listing";
 const clientEndPoints = {
   ////////////////Authentication Routes////////////////
   signup: `${authBasePath}/signup`,
@@ -24,6 +25,9 @@ const clientEndPoints = {
   uploadAvatar: `${userBasePath}/upload-avatar`,
   updateUser: `${userBasePath}/update-user`,
   deleteUser: `${userBasePath}/delete-user`,
+
+  /// User Listing///////////////////
+  createListing: `${listingBasePath}/create-listing`,
 };
 
 export { clientBaseURL, clientEndPoints };

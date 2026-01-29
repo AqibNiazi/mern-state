@@ -1,7 +1,136 @@
 import { InputField } from "@/components";
-import React from "react";
-
+import React, { useState } from "react";
+import { notify } from "@/util/notify";
+import { clientBaseURL, clientEndPoints } from "@/config";
 const CreateListing = () => {
+  const [files, setFiles] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    address: "",
+    type: "sale", // default
+    parking: false,
+    furnished: false,
+    offer: false,
+    bedrooms: 1,
+    bathrooms: 1,
+    regularPrice: 0,
+    discountPrice: 0,
+    imageUrls: [],
+  });
+
+  const [uploading, setUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleChange = (e) => {
+    const { id, value, type, checked } = e.target;
+
+    if (type === "checkbox") {
+      if (id === "sale") {
+        setFormData({ ...formData, type: checked ? "sale" : "rent" });
+      } else if (id === "rent") {
+        setFormData({ ...formData, type: checked ? "rent" : "sale" });
+      } else {
+        setFormData({ ...formData, [id]: checked });
+      }
+    } else {
+      setFormData({ ...formData, [id]: value });
+    }
+  };
+
+  const handleImageSubmit = async () => {
+    if (files.length === 0) {
+      setImageUploadError("Please select at least 1 image");
+      return;
+    }
+
+    if (files.length + formData.imageUrls.length > 6) {
+      setImageUploadError("You can only upload up to 6 images total");
+      return;
+    }
+
+    setUploading(true);
+    setImageUploadError(null);
+
+    try {
+      const urls = await Promise.all(files.map(storeImage));
+
+      setFormData((prev) => ({
+        ...prev,
+        imageUrls: [...prev.imageUrls, ...urls],
+      }));
+    } catch (err) {
+      setImageUploadError(err.message || "Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const storeImage = async (file) => {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Only image files are allowed");
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      throw new Error("Image must be less than 2MB");
+    }
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    data.append("folder", import.meta.env.VITE_CLOUDINARY_FOLDER);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: data,
+      },
+    );
+
+    if (!res.ok) {
+      throw new Error("Cloudinary upload failed");
+    }
+
+    const result = await res.json();
+    return result.secure_url;
+  };
+
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await clientBaseURL.post(
+        clientEndPoints.createListing, // define in config
+        formData,
+      );
+
+      if (response.data.success) {
+        notify.success(response.data.message);
+        // optionally redirect or reset form
+      } else {
+        setError(response.data.message);
+        notify.error(response.data.message);
+      }
+    } catch (err) {
+      setError("Failed to create listing");
+      notify.error(err.response?.data?.message || "Failed to create listing");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="p-3 max-w-4xl mx-auto">
       <h1 className="text-3xl font-semibold text-center my-7">
@@ -9,11 +138,11 @@ const CreateListing = () => {
       </h1>
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
         <div className="flex flex-col gap-4 flex-1">
-          <input
+          <InputField
             type="text"
             placeholder="Name"
-            className="border p-3 rounded-lg"
             id="name"
+            name="name"
             maxLength="62"
             minLength="10"
             required
@@ -23,16 +152,20 @@ const CreateListing = () => {
           <textarea
             type="text"
             placeholder="Description"
-            className="border p-3 rounded-lg"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg 
+                  focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 placeholder:text-sm
+                  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
+                  dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             id="description"
+            name="description"
             required
             onChange={handleChange}
             value={formData.description}
           />
-          <input
+          <InputField
             type="text"
             placeholder="Address"
-            className="border p-3 rounded-lg"
+            name="address"
             id="address"
             required
             onChange={handleChange}
@@ -167,7 +300,7 @@ const CreateListing = () => {
           </p>
           <div className="flex gap-4">
             <input
-              onChange={(e) => setFiles(e.target.files)}
+              onChange={(e) => setFiles(Array.from(e.target.files))}
               className="p-3 border border-gray-300 rounded w-full"
               type="file"
               id="images"
@@ -186,26 +319,29 @@ const CreateListing = () => {
           <p className="text-red-700 text-sm">
             {imageUploadError && imageUploadError}
           </p>
-          {formData.imageUrls.length > 0 &&
-            formData.imageUrls.map((url, index) => (
-              <div
-                key={url}
-                className="flex justify-between p-3 border items-center"
-              >
-                <img
-                  src={url}
-                  alt="listing image"
-                  className="w-20 h-20 object-contain rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(index)}
-                  className="p-3 text-red-700 rounded-lg uppercase hover:opacity-75"
+          <ul>
+            {formData.imageUrls.length > 0 &&
+              formData.imageUrls.map((url, index) => (
+                <li
+                  key={url}
+                  className="flex justify-between p-3 border items-center"
                 >
-                  Delete
-                </button>
-              </div>
-            ))}
+                  <img
+                    src={url}
+                    alt="listing image"
+                    className="w-20 h-20 object-contain rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="p-3 text-red-700 rounded-lg uppercase hover:opacity-75"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+          </ul>
+
           <button
             disabled={loading || uploading}
             className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
