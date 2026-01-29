@@ -2,7 +2,6 @@ const Listing = require("../model/listing.model");
 
 const createListing = async (req, res) => {
   try {
-    // ✅ Basic validation: ensure required fields exist
     const {
       name,
       description,
@@ -16,23 +15,25 @@ const createListing = async (req, res) => {
       type,
       offer,
       imageUrls,
-      userRef,
     } = req.body;
+
+    // userRef from auth middleware
+    const userRef = req.user.id;
 
     if (
       !name ||
       !description ||
       !address ||
-      !regularPrice ||
-      !discountPrice ||
+      regularPrice === undefined ||
+      (offer && discountPrice === undefined) ||
       bedrooms === undefined ||
       bathrooms === undefined ||
       furnished === undefined ||
       parking === undefined ||
       !type ||
       offer === undefined ||
-      !imageUrls ||
-      !userRef
+      !Array.isArray(imageUrls) ||
+      imageUrls.length === 0
     ) {
       return res.status(400).json({
         success: false,
@@ -41,8 +42,14 @@ const createListing = async (req, res) => {
       });
     }
 
-    // ✅ Create listing
-    const listing = await Listing.create(req.body);
+    const listing = await Listing.create({
+      ...req.body,
+      regularPrice: Number(regularPrice),
+      discountPrice: offer ? Number(discountPrice) : 0,
+      bedrooms: Number(bedrooms),
+      bathrooms: Number(bathrooms),
+      userRef,
+    });
 
     return res.status(201).json({
       success: true,
@@ -55,8 +62,6 @@ const createListing = async (req, res) => {
       success: false,
       error: "SERVER_ERROR",
       message: "Something went wrong while creating the listing.",
-      details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
