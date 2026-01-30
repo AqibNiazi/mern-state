@@ -1,11 +1,15 @@
-import { Button, InputCheck, InputField, InputNumber } from "@/components";
 import React, { useState } from "react";
+import { Button, InputCheck, InputField, InputNumber } from "@/components";
 import { notify } from "@/util/notify";
 import { clientBaseURL, clientEndPoints } from "@/config";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 const CreateListing = () => {
   const [files, setFiles] = useState([]);
+  const navigate = useNavigate();
+  const { currentUser } = useSelector((state) => state.user);
   const [formData, setFormData] = useState({
-    name: "",
+    title: "",
     description: "",
     address: "",
     type: "sale", // default
@@ -107,17 +111,23 @@ const CreateListing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
 
+    if (formData.imageUrls.length < 1)
+      return setError("Please upload at least 1 image");
+
+    if (+formData.regularPrice < +formData.discountPrice)
+      return setError("Discount price must be less than regular price");
     try {
+      setLoading(true);
+      setError(null);
       const response = await clientBaseURL.post(
         clientEndPoints.createListing, // define in config
-        formData,
+        { ...formData, userRef: currentUser.id },
       );
-
+      console.log(response.data.data._id);
       if (response.data.success) {
         notify.success(response.data.message);
+        navigate(`/listing/${response.data.data._id}`);
         // optionally redirect or reset form
       } else {
         setError(response.data.message);
@@ -140,21 +150,20 @@ const CreateListing = () => {
         <div className="flex flex-col gap-4 flex-1">
           <InputField
             type="text"
-            placeholder="Name"
-            id="name"
-            name="name"
+            placeholder="Title"
+            id="title"
+            name="title"
             maxLength="62"
             minLength="10"
             required
             onChange={handleChange}
-            value={formData.name}
+            value={formData.title}
           />
           <textarea
             type="text"
             placeholder="Description"
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg 
-                  focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 placeholder:text-sm
-                  "
+                  focus:ring-blue-600 focus:border-blue-600 block w-full p-2.5 placeholder:text-sm"
             id="description"
             name="description"
             required
@@ -173,13 +182,11 @@ const CreateListing = () => {
 
           <div className="flex gap-6 flex-wrap">
             <InputCheck
-              type="checkbox"
               id="sale"
               onChange={handleChange}
               checked={formData.type === "sale"}
               label="Sale"
             />
-
             <InputCheck
               id="rent"
               onChange={handleChange}
@@ -213,7 +220,6 @@ const CreateListing = () => {
               min="1"
               max="10"
               required
-              className="p-3 border border-gray-300 rounded-lg"
               onChange={handleChange}
               value={formData.bedrooms}
               label="Beds"
@@ -225,7 +231,6 @@ const CreateListing = () => {
               min="1"
               max="10"
               required
-              className="p-3 border border-gray-300 rounded-lg"
               onChange={handleChange}
               value={formData.bathrooms}
               label="Baths"
@@ -270,6 +275,7 @@ const CreateListing = () => {
             )}
           </div>
         </div>
+
         <div className="flex flex-col flex-1 gap-4">
           <p className="font-semibold">
             Images:
@@ -324,7 +330,13 @@ const CreateListing = () => {
 
           <Button
             disabled={loading || uploading}
-            className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80"
+            className={`uppercase
+              ${
+                loading || uploading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-slate-700 hover:bg-slate-800"
+              } 
+              transition-colors duration-200`}
           >
             {loading ? "Creating..." : "Create listing"}
           </Button>

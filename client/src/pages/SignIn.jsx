@@ -47,7 +47,9 @@ const SignIn = () => {
         notify.error(response.data.message || "Signin failed");
       }
     } catch (error) {
-      dispatch(signInFailure(error.message));
+      console.log(error.response.data.message);
+      notify.error(error.response.data.message || "Signin failed");
+      dispatch(signInFailure(error.response.data.message));
     }
   };
 
